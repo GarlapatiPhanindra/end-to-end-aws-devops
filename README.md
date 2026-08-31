@@ -1,6 +1,6 @@
 # Infrastructure Provisioning
 
-This folder contains Terraform configuration to provision AWS infrastructure for the application (VPC, EC2 autoscaling, ALB, RDS PostgreSQL, monitoring and logging).
+This file contains Terraform configuration to provision AWS infrastructure for the application (VPC, EC2 autoscaling, ALB, RDS PostgreSQL, monitoring and logging).
 
 ## Quick setup
 
