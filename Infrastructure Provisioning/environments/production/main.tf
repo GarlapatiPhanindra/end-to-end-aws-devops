@@ -2,63 +2,54 @@ provider "aws" {
   region = var.region
 }
 
-data "aws_ami" "amzn2" {
-  most_recent = true
-  owners      = ["amazon"]
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-}
-
 module "vpc" {
-  source = "../../modules/vpc"
-  name_prefix = var.name_prefix
-  vpc_cidr = var.vpc_cidr
-  azs = var.azs
-  public_subnet_cidrs = var.public_subnet_cidrs
+  source               = "../../modules/vpc"
+  name_prefix          = var.name_prefix
+  vpc_cidr             = var.vpc_cidr
+  azs                  = var.azs
+  public_subnet_cidrs  = var.public_subnet_cidrs
   private_subnet_cidrs = var.private_subnet_cidrs
-  tags = var.tags
+  tags                 = var.tags
 }
 
 module "sg" {
-  source = "../../modules/security-groups"
-  vpc_id = module.vpc.vpc_id
+  source           = "../../modules/security-groups"
+  vpc_id           = module.vpc.vpc_id
   allowed_ssh_cidr = var.allowed_ssh_cidr
-  name_prefix = var.name_prefix
-  tags = var.tags
+  name_prefix      = var.name_prefix
+  tags             = var.tags
 }
 
 module "alb" {
-  source = "../../modules/alb"
+  source      = "../../modules/alb"
   name_prefix = var.name_prefix
-  vpc_id = module.vpc.vpc_id
-  subnet_ids = module.vpc.public_subnet_ids
-  alb_sg_id = module.sg.alb_sg_id
-  internal = var.alb_internal
-  tags = var.tags
+  vpc_id      = module.vpc.vpc_id
+  subnet_ids  = module.vpc.public_subnet_ids
+  alb_sg_id   = module.sg.alb_sg_id
+  internal    = var.alb_internal
+  tags        = var.tags
 }
 
 module "rds" {
-  source = "../../modules/rds"
-  name_prefix = var.name_prefix
+  source             = "../../modules/rds"
+  name_prefix        = var.name_prefix
   private_subnet_ids = module.vpc.private_subnet_ids
-  db_sg_id = module.sg.db_sg_id
-  db_name = var.db_name
-  username = var.db_username
-  password = random_password.db_password.result
-  instance_class = var.db_instance_class
-  allocated_storage = var.db_allocated_storage
-  tags = var.tags
+  db_sg_id           = module.sg.db_sg_id
+  db_name            = var.db_name
+  username           = var.db_username
+  password           = random_password.db_password.result
+  instance_class     = var.db_instance_class
+  allocated_storage  = var.db_allocated_storage
+  tags               = var.tags
 }
 
 resource "random_password" "db_password" {
   length           = 20
-  override_special = "@%+--_#"
+  override_special = "%+_-#="
 }
 
 resource "aws_secretsmanager_secret" "db_credentials" {
-  name = "${var.name_prefix}-prod-db-creds"
+  name = "${var.name_prefix}-prod1-db-creds"
   tags = var.tags
 }
 
@@ -68,48 +59,48 @@ resource "aws_secretsmanager_secret_version" "db_creds_version" {
 }
 
 module "ec2" {
-  source = "../../modules/ec2"
-  name_prefix = var.name_prefix
-  ami_id = data.aws_ami.amzn2.id
-  instance_type = var.instance_type
-  key_name = var.key_name
-  private_subnet_ids = module.vpc.private_subnet_ids
-  app_sg_id = module.sg.app_sg_id
-  target_group_arn = module.alb.target_group_arn
-  asg_min_size = var.asg_min_size
-  asg_max_size = var.asg_max_size
-  user_data = local.user_data
+  source               = "../../modules/ec2"
+  name_prefix          = var.name_prefix
+  ami_id               = var.ami_id
+  instance_type        = var.instance_type
+  key_name             = var.key_name
+  private_subnet_ids   = module.vpc.private_subnet_ids
+  app_sg_id            = module.sg.app_sg_id
+  target_group_arn     = module.alb.target_group_arn
+  asg_min_size         = var.asg_min_size
+  asg_max_size         = var.asg_max_size
+  user_data            = local.user_data
   instance_profile_arn = module.monitoring.instance_profile_arn
-  tags = var.tags
+  tags                 = var.tags
 }
 
 module "monitoring" {
-  source = "../../modules/monitoring"
+  source      = "../../modules/monitoring"
   name_prefix = var.name_prefix
-  tags = var.tags
+  tags        = var.tags
   infrastructure_dashboard = {
     widgets = [
       {
         type = "metric"
         properties = {
-          metrics = [["AWS/EC2","CPUUtilization","InstanceId","InstanceId"]]
-          period = 300
-          stat = "Average"
-          view = "timeSeries"
-          title = "EC2 CPU"
-          region = var.region
+          metrics     = [["AWS/EC2", "CPUUtilization", "InstanceId", "InstanceId"]]
+          period      = 300
+          stat        = "Average"
+          view        = "timeSeries"
+          title       = "EC2 CPU"
+          region      = var.region
           annotations = {}
         }
       }
-      ,{
+      , {
         type = "metric"
         properties = {
-          metrics = [["AWS/RDS","CPUUtilization","DBInstanceIdentifier", module.rds.db_identifier]]
-          period = 300
-          stat = "Average"
-          view = "timeSeries"
-          title = "RDS CPU"
-          region = var.region
+          metrics     = [["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", module.rds.db_identifier]]
+          period      = 300
+          stat        = "Average"
+          view        = "timeSeries"
+          title       = "RDS CPU"
+          region      = var.region
           annotations = {}
         }
       }
@@ -120,12 +111,12 @@ module "monitoring" {
       {
         type = "metric"
         properties = {
-          metrics = [["AWS/ApplicationELB","RequestCount","LoadBalancer","LoadBalancer"]]
-          period = 60
-          stat = "Sum"
-          view = "timeSeries"
-          title = "Request Rate"
-          region = var.region
+          metrics     = [["AWS/ApplicationELB", "RequestCount", "LoadBalancer", "LoadBalancer"]]
+          period      = 60
+          stat        = "Sum"
+          view        = "timeSeries"
+          title       = "Request Rate"
+          region      = var.region
           annotations = {}
         }
       }

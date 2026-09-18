@@ -9,6 +9,6 @@ instance_type = "t3.small"
 key_name = ""
 asg_min_size = 2
 asg_max_size = 4
-db_password = "REPLACE_WITH_SECURE_PASSWORD"
+db_password = ""
 allowed_ssh_cidr = "203.0.113.0/32"
 alb_internal = false
